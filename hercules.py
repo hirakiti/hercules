@@ -58,11 +58,11 @@ if __name__ == "__main__":
         if ser:
             # Comandos a enviar
             comandos = [
-                '##FACTORY_RESET\r\n',
-                '##REBOOT\r\n',
-                '##GET_FIRMWARE_VERSION\r\n',
-                '##SET_PRIORITY:1>0>2>3\r\n',
-                '##REBOOT\r\n'
+                '##FACTORY_RESET<CR><LF>',
+                '##REBOOT<CR><LF>',
+                '##GET_FIRMWARE_VERSION<CR><LF>',
+                '##SET_PRIORITY:1>0>2>3<CR><LF>',
+                '##REBOOT<CR><LF>'
             ]
 
             # Enviar cada comando
