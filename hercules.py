@@ -33,16 +33,16 @@ def ejecutar_programa():
     else:
         print(f"El programa no se encuentra en la ruta especificada: {ruta_programa}")
 
-def enfocar_ventana(hercules_3-2-8.exe):
+def enfocar_ventana(nombre_programa):
     """Enfoca la ventana del programa especificado usando pygetwindow."""
-    windows = gw.getWindowsWithTitle(hercules_3-2-8.exe)
+    windows = gw.getWindowsWithTitle(nombre_programa)
     if windows:
         ventana = windows[0]  # Toma la primera coincidencia
         ventana.activate()  # Activa la ventana
         print(f"Ventana '{nombre_programa}' activada.")
         time.sleep(1)  # Da tiempo para que la ventana se enfoque
     else:
-        print(f"No se encontró ninguna ventana con el nombre '{hercules_3-2-8.exe}'.")
+        print(f"No se encontró ninguna ventana con el nombre '{nombre_programa}'.")
 
 def navegar_a_serial():
     """Navega a la pestaña 'Serial' en el programa Hercules usando pyautogui."""    
