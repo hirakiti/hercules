@@ -24,9 +24,9 @@ def ejecutar_programa():
     
     if os.path.exists(ruta_programa):
         try:
-            # Ejecuta el programa
+            # Ejecuta el programa y mantiene la ventana de comandos abierta
             print(f"Ejecutando {ruta_programa}...")
-            subprocess.Popen(ruta_programa)  # Lanzar el programa en su propia ventana
+            subprocess.run([ruta_programa], shell=True)  # Usa run() para ejecutar y mostrar la salida en la consola
             time.sleep(5)  # Espera de unos segundos para que el programa se inicie completamente
         except Exception as e:
             print(f"No se pudo ejecutar el programa: {e}")
@@ -111,4 +111,3 @@ if __name__ == "__main__":
     seleccionar_puerto_com()  # Selecciona el primer puerto COM disponible
     enviar_comandos()      # Envía los comandos
     input("Presiona Enter para salir...")  # Pausa antes de cerrar
-
