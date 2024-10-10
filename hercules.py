@@ -1,6 +1,5 @@
 import serial.tools.list_ports
-import serial
-import time
+import subprocess
 
 def listar_puertos_com():
     """Lista todos los puertos COM disponibles y retorna el primero."""
@@ -15,65 +14,53 @@ def listar_puertos_com():
             print(f"Dispositivo: {puerto.device}, Descripción: {puerto.description}")
         return puertos[0].device  # Devuelve el primer puerto COM disponible
 
-def abrir_puerto_com(puerto):
-    """Abre el puerto COM especificado con la configuración adecuada."""
+def configurar_puerto_sistema(puerto):
+    """Configura el puerto COM en el sistema usando el comando mode."""
     try:
-        ser = serial.Serial(puerto, baudrate=9600, timeout=1)
-        print(f"Puerto {puerto} abierto correctamente.")
-        return ser
-    except Exception as e:
-        print(f"Error al abrir el puerto {puerto}: {e}")
-        return None
-
-def enviar_comando(ser, comando):
-    """Envía un comando al puerto serie."""
-    try:
-        ser.write(comando.encode())  # Envía el comando codificado en bytes
-        time.sleep(0.5)  # Espera un momento para asegurarse de que el comando se procese
-        print(f"Comando enviado: {comando.strip()}")
-        
-        # Leer la respuesta del dispositivo
-        respuesta = ser.read_all().decode('utf-8', errors='ignore')
-        if respuesta:
-            print(f"Respuesta recibida: {respuesta}")
+        # Comando mode en función del puerto COM detectado
+        comando = f"mode {puerto} baud=9600 parity=n data=8"
+        resultado = subprocess.run(comando, shell=True, capture_output=True, text=True)
+        if resultado.returncode == 0:
+            print(f"Configuración del puerto {puerto} exitosa.")
         else:
-            print("No se recibió respuesta.")
+            print(f"Error al configurar el puerto {puerto}: {resultado.stderr}")
     except Exception as e:
-        print(f"Error al enviar el comando: {e}")
+        print(f"Error al ejecutar el comando mode: {e}")
 
-def cerrar_puerto_com(ser):
-    """Cierra el puerto serie."""
-    if ser:
-        ser.close()
-        print("Puerto cerrado.")
+def enviar_comando_echo(puerto, comando):
+    """Envía el comando echo al puerto COM."""
+    try:
+        # Comando echo para redirigir al puerto COM
+        comando_echo = f'echo {comando.strip()} > {puerto}'
+        # Ejecuta el comando echo
+        resultado = subprocess.run(comando_echo, shell=True, capture_output=True, text=True)
+        if resultado.returncode == 0:
+            print(f"Comando '{comando.strip()}' enviado exitosamente al puerto {puerto}.")
+        else:
+            print(f"Error al enviar el comando '{comando.strip()}': {resultado.stderr}")
+    except Exception as e:
+        print(f"Error al ejecutar el comando echo: {e}")
 
 if __name__ == "__main__":
-    # Listar puertos COM y seleccionar el primero
+    # Lista los puertos COM y selecciona el primero disponible
     puerto_com = listar_puertos_com()
     
     if puerto_com:
-        # Abrir el puerto COM
-        ser = abrir_puerto_com(puerto_com)
-        
-        if ser:
-            # Comandos a enviar
-            comandos = [
-                '##FACTORY_RESET<CR><LF>',
-                '##REBOOT<CR><LF>',
-                '##GET_FIRMWARE_VERSION<CR><LF>',
-                '##SET_PRIORITY:1>0>2>3<CR><LF>',
-                '##REBOOT<CR><LF>'
-            ]
+        # Configura el puerto
+        configurar_puerto_sistema(puerto_com)
 
-            # Enviar cada comando
-            for comando in comandos:
-                enviar_comando(ser, comando)
-                time.sleep(2)  # Pausa entre comandos para dar tiempo al dispositivo a procesarlos
-            
-            # Cerrar el puerto COM
-            cerrar_puerto_com(ser)
+        # Comandos a enviar
+        comandos = [
+            '##FACTORY_RESET',
+            '##REBOOT',
+            '##GET_FIRMWARE_VERSION',
+            '##SET_PRIORITY:1>0>2>3',
+            '##REBOOT'
+        ]
 
-        else:
-            print("No se pudo abrir el puerto COM.")
+        # Envia cada comando utilizando el comando echo
+        for comando in comandos:
+            enviar_comando_echo(puerto_com, comando)
+
     else:
         print("No se encontró ningún puerto COM.")
