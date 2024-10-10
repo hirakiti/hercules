@@ -1,5 +1,6 @@
 import serial.tools.list_ports
 import subprocess
+import time
 
 def listar_puertos_com():
     """Lista todos los puertos COM disponibles y retorna el primero."""
@@ -30,9 +31,7 @@ def configurar_puerto_sistema(puerto):
 def enviar_comando_echo(puerto, comando):
     """Envía el comando echo al puerto COM."""
     try:
-        # Comando echo para redirigir al puerto COM
         comando_echo = f'echo {comando.strip()} > {puerto}'
-        # Ejecuta el comando echo
         resultado = subprocess.run(comando_echo, shell=True, capture_output=True, text=True)
         if resultado.returncode == 0:
             print(f"Comando '{comando.strip()}' enviado exitosamente al puerto {puerto}.")
@@ -42,25 +41,25 @@ def enviar_comando_echo(puerto, comando):
         print(f"Error al ejecutar el comando echo: {e}")
 
 if __name__ == "__main__":
-    # Lista los puertos COM y selecciona el primero disponible
+    # Listar puertos COM y seleccionar el primero
     puerto_com = listar_puertos_com()
     
     if puerto_com:
-        # Configura el puerto
+        # Configurar el puerto en el sistema con el comando mode
         configurar_puerto_sistema(puerto_com)
 
-        # Comandos a enviar
+        # Comandos a enviar con terminaciones \r\n
         comandos = [
-            '##FACTORY_RESET',
-            '##REBOOT',
-            '##GET_FIRMWARE_VERSION',
-            '##SET_PRIORITY:1>0>2>3',
-            '##REBOOT'
+            '##FACTORY_RESET\r\n',
+            '##REBOOT\r\n',
+            '##GET_FIRMWARE_VERSION\r\n',
+            '##SET_PRIORITY:1>0>2>3\r\n',
+            '##REBOOT\r\n'
         ]
 
-        # Envia cada comando utilizando el comando echo
         for comando in comandos:
             enviar_comando_echo(puerto_com, comando)
+            time.sleep(2)  # Espera de 2 segundos entre comandos
 
     else:
         print("No se encontró ningún puerto COM.")
