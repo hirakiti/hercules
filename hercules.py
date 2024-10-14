@@ -1,65 +1,92 @@
+import serial
 import serial.tools.list_ports
-import subprocess
-import os
 import time
 
-def listar_puertos_com():
-    """Consulta y lista todos los puertos COM disponibles en el sistema."""
-    puertos = serial.tools.list_ports.comports()
-
-    if not puertos:
-        print("No se encontraron puertos COM.")
-        return None  # Devuelve None si no se encuentran puertos
+# Detecta los puertos serie disponibles que tengan como nombre "USB Serial Port"
+def encontrar_puerto_serial():
+    puertos = list(serial.tools.list_ports.comports())
+    if len(puertos) == 0:
+        print("No hay puertos seriales disponibles.")
+        return None
     else:
-        print("Puertos COM disponibles:")
         for puerto in puertos:
-            print(f"Dispositivo: {puerto.device}, Descripción: {puerto.description}")
-        return puertos[0].device  # Devuelve el primer puerto COM disponible
+            if "USB Serial Port" in puerto.description:  # Busca si el puerto es "USB Serial Port"
+                print(f"Puerto USB Serial Port encontrado: {puerto.device}")
+                return puerto.device
+        print("No se encontró un puerto con el nombre 'USB Serial Port'.")
+        return None
 
-def configurar_puerto_com(puerto):
-    """Configura el puerto COM con los parámetros especificados."""
-    comando_mode = f"mode {puerto} baud=9600 parity=n data=8"
-    try:
-        # Comando mode para configurar el puerto COM
-        resultado = subprocess.run(comando_mode, shell=True, capture_output=True, text=True)
-        if resultado.returncode == 0:
-            print(f"Configuración del puerto {puerto} exitosa.")
-        else:
-            print(f"Error al configurar el puerto {puerto}: {resultado.stderr}")
-    except Exception as e:
-        print(f"Excepción al configurar el puerto: {e}")
+# Envia los comandos y verifica su respuesta
+def enviar_comando_y_verificar(ser, comando, descripcion, log_file):
+    ser.reset_input_buffer()  # Limpia el buffer de entrada
+    ser.write(comando.encode())  
+    print(f"{descripcion}: {comando.strip()}")
+    time.sleep(2)  # Espera 2 segundos para dar tiempo a procesar
 
-def enviar_comando(puerto, comando):
-    """Envía un comando al puerto COM especificado."""
-    comando_echo = f"echo {comando} > {puerto}"
+    respuesta = ""
+    # Lee hasta que no haya más datos disponibles
+    start_time = time.time()  # Registra el tiempo de inicio
+    while time.time() - start_time < 5:  # Espera hasta 5 segundos
+        if ser.inWaiting() > 0:  
+            respuesta += ser.readline().decode('utf-8', errors='ignore').strip() + "\n"
+        time.sleep(0.1)  
+
+    # Registra la respuesta en el archivo de log
+    log_file.write(f"{descripcion}: {respuesta.strip()}\n")
+
+    if respuesta:
+        print(f"{descripcion}: {respuesta.strip()}")
+    else:
+        print(f"{descripcion}: No se recibió respuesta del dispositivo.")
+
+# Función principal
+def gestionar_puerto_serial():
+    puerto = encontrar_puerto_serial()
+    if not puerto:
+        return
+    
     try:
-        # Comando echo para enviar el comando al puerto COM
-        resultado = subprocess.run(comando_echo, shell=True, capture_output=True, text=True)
-        if resultado.returncode == 0:
-            print(f"Comando '{comando}' enviado exitosamente al puerto {puerto}.")
-        else:
-            print(f"Error al enviar el comando '{comando}': {resultado.stderr}")
+        # Configura la conexión serie con las siguientes especificaciones 
+        ser = serial.Serial(
+            port=puerto,             # Puerto encontrado
+            baudrate=9600,           # Velocidad de transmisión: 9600 bps
+            bytesize=serial.EIGHTBITS,  # Tamaño de los datos: 8 bits
+            parity=serial.PARITY_NONE,  # Paridad: ninguna
+            stopbits=serial.STOPBITS_ONE,  # 1 bit de stop
+            xonxoff=False,           # Control de flujo por software: deshabilitado
+            rtscts=False,            # Control de flujo por hardware (RTS/CTS): deshabilitado
+            dsrdtr=False,            # DSR/DTR: deshabilitado (handshake desactivado)
+            timeout=3                # Timeout de 3 segundos para las lecturas
+        )
+        print(f"Puerto {puerto} abierto con configuración: baudrate=9600, paridad=None, handshake=off, modo=free.")
+        
+        # Abre el archivo de log
+        with open("registro_comandos.txt", "w") as log_file:
+            # Comando 1: FACTORY RESET
+            enviar_comando_y_verificar(ser, "#FACTORY_RESET\r\n", "Factory Reset ejecutado", log_file)
+            time.sleep(5)  # Espera 5 segundos para que el dispositivo reinicie
+
+            # Comando 2: Obtener versión del firmware
+            enviar_comando_y_verificar(ser, "#GET_FIRMWARE_VERSION\r\n", "Versión del firmware", log_file)
+            time.sleep(2)  # Espera 2 segundos después de obtener la versión
+
+            # Comando 3: Configurar el orden de prioridad
+            enviar_comando_y_verificar(ser, "#SET_PRIORITY:1>0>2>3\r\n", "Orden de prioridad enviada", log_file)
+            time.sleep(2)  # Espera 2 segundos después de enviar la orden de prioridad
+
+            # Comando 4: Reiniciar el dispositivo
+            enviar_comando_y_verificar(ser, "#REBOOT\r\n", "Reinicio ejecutado", log_file)
+            time.sleep(5)  # Espera 5 segundos para que el dispositivo reinicie de nuevo
+
+        # Cerrar puerto
+        ser.close()
+        print(f"Puerto {puerto} cerrado.")
+
+    except serial.SerialException as e:
+        print(f"Error al abrir el puerto: {e}")
     except Exception as e:
-        print(f"Excepción al enviar el comando: {e}")
+        print(f"Ocurrió un error: {e}")
 
 if __name__ == "__main__":
-    # Obtiene el puerto COM automáticamente
-    puerto_com = listar_puertos_com()  # Llama a la función para listar los puertos y guarda el primero
-    
-    if puerto_com:
-        configurar_puerto_com(puerto_com)
-        
-        comandos = [
-            '@FACTORY_RESET',
-            '@REBOOT',
-            '@GET_FIRMWARE_VERSION',
-            '@SET_PRIORITY:1>0>2>3',
-            '@REBOOT'
-        ]
-        
-        for comando in comandos:
-            enviar_comando(puerto_com, comando)
-            time.sleep(5)  # Espera de 5 segundos entre cada comando
+    gestionar_puerto_serial()
 
-    else:
-        print("No se encontró ningún puerto COM disponible.")
