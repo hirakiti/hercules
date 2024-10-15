@@ -64,7 +64,7 @@ def gestionar_puerto_serial():
         with open("registro_comandos.txt", "w") as log_file:
             # Comando 1: FACTORY RESET
             enviar_comando_y_verificar(ser, "#FACTORY_RESET\r\n", "Factory Reset ejecutado", log_file)
-            time.sleep(5)  # Espera 5 segundos para que el dispositivo reinicie
+            time.sleep(10)  # Espera 10 segundos para que el dispositivo reinicie
 
             # Comando 2: Obtener versión del firmware
             enviar_comando_y_verificar(ser, "#GET_FIRMWARE_VERSION\r\n", "Versión del firmware", log_file)
