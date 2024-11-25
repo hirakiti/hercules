@@ -10,13 +10,13 @@ def encontrar_puerto_serial():
         return None
     else:
         for puerto in puertos:
-            if "USB Serial Port" in puerto.description:  # Busca si el puerto es "USB Serial Port"
+            if "USB Serial Port" in puerto.description:  
                 print(f"Puerto USB Serial Port encontrado: {puerto.device}")
                 return puerto.device
         print("No se encontró un puerto con el nombre 'USB Serial Port'.")
         return None
 
-# Envia los comandos y verifica su respuesta
+# Envia los comandos y verifica si funcionan
 def enviar_comando_y_verificar(ser, comando, descripcion, log_file):
     ser.reset_input_buffer()  # Limpia el buffer de entrada
     ser.write(comando.encode())  
@@ -24,7 +24,7 @@ def enviar_comando_y_verificar(ser, comando, descripcion, log_file):
     time.sleep(2)  # Espera 2 segundos para dar tiempo a procesar
 
     respuesta = ""
-    # Lee hasta que no haya más datos disponibles
+    
     start_time = time.time()  # Registra el tiempo de inicio
     while time.time() - start_time < 5:  # Espera hasta 5 segundos
         if ser.inWaiting() > 0:  
@@ -48,15 +48,15 @@ def gestionar_puerto_serial():
     try:
         # Configura la conexión serie con las siguientes especificaciones 
         ser = serial.Serial(
-            port=puerto,             # Puerto encontrado
-            baudrate=9600,           # Velocidad de transmisión: 9600 bps
-            bytesize=serial.EIGHTBITS,  # Tamaño de los datos: 8 bits
-            parity=serial.PARITY_NONE,  # Paridad: ninguna
-            stopbits=serial.STOPBITS_ONE,  # 1 bit de stop
-            xonxoff=False,           # Control de flujo por software: deshabilitado
-            rtscts=False,            # Control de flujo por hardware (RTS/CTS): deshabilitado
-            dsrdtr=False,            # DSR/DTR: deshabilitado (handshake desactivado)
-            timeout=3                # Timeout de 3 segundos para las lecturas
+            port=puerto,             
+            baudrate=9600,           
+            bytesize=serial.EIGHTBITS,  
+            parity=serial.PARITY_NONE,  
+            stopbits=serial.STOPBITS_ONE,  
+            xonxoff=False,           
+            rtscts=False,            
+            dsrdtr=False,            
+            timeout=3                
         )
         print(f"Puerto {puerto} abierto con configuración: baudrate=9600, paridad=None, handshake=off, modo=free.")
         
